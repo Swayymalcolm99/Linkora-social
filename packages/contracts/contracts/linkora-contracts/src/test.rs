@@ -3272,6 +3272,7 @@ mod oracle_tests {
         let env = Env::default();
         env.mock_all_auths();
         let (client, _, sk, _) = setup(&env);
+        let creator = Address::generate(&env);
 
         let report: &[u8] = &[1, 1, 42, 0, 0, 0, 0, 5];
         let report_cbor = Bytes::from_slice(&env, report);
@@ -3281,6 +3282,9 @@ mod oracle_tests {
             &symbol_short!("default"),
             &report_cbor,
             &signature,
+            &creator,
+            &1000u64,
+            &2000u64,
         );
         assert!(result);
     }
@@ -3291,22 +3295,38 @@ mod oracle_tests {
         let env = Env::default();
         env.mock_all_auths();
         let (client, _, sk, _) = setup(&env);
+        let creator = Address::generate(&env);
 
         let report: &[u8] = &[1, 1, 99];
         let report_cbor = Bytes::from_slice(&env, report);
         let signature = sign_report(&env, &sk, report);
 
-        client.verify_analytics_attestation(&symbol_short!("default"), &report_cbor, &signature);
+        client.verify_analytics_attestation(
+            &symbol_short!("default"),
+            &report_cbor,
+            &signature,
+            &creator,
+            &1000u64,
+            &2000u64,
+        );
         // Second identical call must panic.
-        client.verify_analytics_attestation(&symbol_short!("default"), &report_cbor, &signature);
+        client.verify_analytics_attestation(
+            &symbol_short!("default"),
+            &report_cbor,
+            &signature,
+            &creator,
+            &1000u64,
+            &2000u64,
+        );
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Error(Crypto, InvalidInput)")]
     fn test_oracle_flipped_bit_fails() {
         let env = Env::default();
         env.mock_all_auths();
         let (client, _, sk, _) = setup(&env);
+        let creator = Address::generate(&env);
 
         let report: &[u8] = &[1, 1, 55];
         let report_cbor = Bytes::from_slice(&env, report);
@@ -3315,11 +3335,14 @@ mod oracle_tests {
         bad_arr[0] ^= 0xFF;
         let bad_signature = BytesN::from_array(&env, &bad_arr);
 
-        // Must panic — signature verification fails.
+        // Must panic with "invalid signature" from ed25519_verify.
         client.verify_analytics_attestation(
             &symbol_short!("default"),
             &report_cbor,
             &bad_signature,
+            &creator,
+            &1000u64,
+            &2000u64,
         );
     }
 }

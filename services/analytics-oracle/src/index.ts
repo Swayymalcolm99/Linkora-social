@@ -101,7 +101,10 @@ async function runWindow(windowStart: bigint, windowEnd: bigint): Promise<void> 
         ORACLE_NAME,
         reportCbor,
         signature,
-        oracleKeypair
+        oracleKeypair,
+        s.creatorAddress,
+        windowStart,
+        windowEnd
       );
       console.log(
         `[oracle] attested ${s.creatorAddress} tx=${txHash}`
@@ -117,6 +120,7 @@ async function runWindow(windowStart: bigint, windowEnd: bigint): Promise<void> 
       reportCbor,
       reportHash: reportHash.toString("hex"),
       signature,
+      txHash,
       report,
       submittedAt: Date.now(),
     });
@@ -155,6 +159,7 @@ app.get("/attestations/:creator", (req, res) => {
     reportHash: att.reportHash,
     reportCbor: att.reportCbor.toString("hex"),
     signature: att.signature.toString("hex"),
+    txHash: att.txHash,
     submittedAt: att.submittedAt,
     report: {
       version: att.report.version,

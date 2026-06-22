@@ -19,6 +19,7 @@ export interface SignedAttestation {
   reportCbor: Buffer;
   reportHash: string; // hex sha256
   signature: Buffer; // 64-byte Ed25519 signature
+  txHash: string; // on-chain transaction ID
   report: AnalyticsReport;
   submittedAt: number; // Unix timestamp ms
 }

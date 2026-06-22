@@ -32,6 +32,7 @@ export interface AnalyticsAttestation {
   reportHash: string;
   reportCbor: string;
   signature: string;
+  txHash: string;
   submittedAt: number;
   report: {
     version: number;

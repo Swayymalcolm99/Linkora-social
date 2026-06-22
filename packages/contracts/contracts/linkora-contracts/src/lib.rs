@@ -423,6 +423,9 @@ pub struct AttestationVerifiedEvent {
     pub oracle_name: Symbol,
     #[topic]
     pub report_hash: BytesN<32>,
+    pub creator: Address,
+    pub window_start: u64,
+    pub window_end: u64,
 }
 
 // ── Contract ──────────────────────────────────────────────────────────────────
@@ -1793,6 +1796,9 @@ impl LinkoraContract {
         oracle_name: Symbol,
         report_cbor: soroban_sdk::Bytes,
         signature: BytesN<64>,
+        creator: Address,
+        window_start: u64,
+        window_end: u64,
     ) -> bool {
         let oracle_key = StorageKey::OracleKey(oracle_name.clone());
         let pubkey: BytesN<32> = env
@@ -1823,6 +1829,9 @@ impl LinkoraContract {
         AttestationVerifiedEvent {
             oracle_name,
             report_hash,
+            creator,
+            window_start,
+            window_end,
         }
         .publish(&env);
 

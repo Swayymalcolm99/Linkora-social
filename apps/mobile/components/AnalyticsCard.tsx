@@ -6,6 +6,7 @@ interface AnalyticsAttestation {
   oracleName: string;
   reportHash: string;
   signature: string;
+  txHash: string;
   submittedAt: number;
   report: {
     version: number;
@@ -70,8 +71,8 @@ export function AnalyticsCard({ creatorAddress, oracleApiUrl }: AnalyticsCardPro
 
   if (state.status === "empty") return null;
 
-  const { report, reportHash, submittedAt } = state.data;
-  const explorerUrl = `https://stellar.expert/explorer/testnet/contract-call/${reportHash}`;
+  const { report, txHash, submittedAt } = state.data;
+  const explorerUrl = `https://stellar.expert/explorer/testnet/tx/${txHash}`;
 
   return (
     <View style={styles.card} accessible accessibilityLabel="Creator analytics">

@@ -63,8 +63,8 @@ export function AnalyticsCard({ creatorAddress, oracleApiUrl }: AnalyticsCardPro
 
   if (state.status === "empty" || state.status === "error") return null;
 
-  const { report, reportHash, submittedAt } = state.data;
-  const explorerUrl = `https://stellar.expert/explorer/testnet/contract-call/${reportHash}`;
+  const { report, txHash, submittedAt } = state.data;
+  const explorerUrl = `https://stellar.expert/explorer/testnet/tx/${txHash}`;
 
   return (
     <section style={styles.card} aria-label="Creator analytics">

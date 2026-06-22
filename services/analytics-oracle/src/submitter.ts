@@ -9,11 +9,6 @@ import {
 
 const DEFAULT_TIMEOUT = 30;
 
-/**
- * Submits a `verify_analytics_attestation` call to the contract.
- *
- * The oracle pays its own gas using the keypair derived from the oracle private key.
- */
 export async function submitAttestation(
   rpcUrl: string,
   networkPassphrase: string,
@@ -21,20 +16,21 @@ export async function submitAttestation(
   oracleName: string,
   reportCbor: Buffer,
   signature: Buffer,
-  oracleKeypair: Keypair
+  oracleKeypair: Keypair,
+  creatorAddress: string,
+  windowStart: bigint,
+  windowEnd: bigint
 ): Promise<string> {
   const server = new rpc.Server(rpcUrl);
 
-  const oracleNameVal = nativeToScVal(oracleName, { type: "symbol" });
-  const reportCborVal = nativeToScVal(reportCbor, { type: "bytes" });
-  const signatureVal = xdr.ScVal.scvBytes(signature);
-
-  const contract = new Contract(contractId);
-  const op = contract.call(
+  const op = new Contract(contractId).call(
     "verify_analytics_attestation",
-    oracleNameVal,
-    reportCborVal,
-    signatureVal
+    nativeToScVal(oracleName, { type: "symbol" }),
+    nativeToScVal(reportCbor, { type: "bytes" }),
+    xdr.ScVal.scvBytes(signature),
+    nativeToScVal(creatorAddress, { type: "address" }),
+    nativeToScVal(windowStart, { type: "u64" }),
+    nativeToScVal(windowEnd, { type: "u64" })
   );
 
   const sourceAccount = await server.getAccount(oracleKeypair.publicKey());
