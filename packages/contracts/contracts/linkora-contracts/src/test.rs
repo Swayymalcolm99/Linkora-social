@@ -3243,6 +3243,13 @@ fn test_gov_veto_insufficient_pool_signers_panics() {
 fn test_profile_expiry_detection() {
     let env = Env::default();
     env.mock_all_auths();
+
+    // Set custom TTL parameters for the mock ledger to override defaults
+    env.ledger().with_mut(|li| {
+        li.min_persistent_entry_ttl = 100_000;
+        li.max_entry_ttl = 3_000_000;
+    });
+
     let (client, _, _) = setup_contract(&env);
 
     let user = Address::generate(&env);
