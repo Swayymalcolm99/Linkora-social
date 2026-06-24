@@ -1,59 +1,37 @@
-# TODO - Indexer security hardening
+# TODO — Linkora-social indexer Phase 1-3
 
-## Step 1: Analyze & align specs
+## Step 1 — Postgres DB implementation + follow_counts materialization
+- [x] Inspect current DB expectations vs migrations (posts/follows/tips/likes/pools)
+- [x] Install deps + run existing indexer test suite (all 57 handler tests passing)
+- [x] Create `services/indexer/src/postgres-db.ts` implementing `Database`
 
-- [x] Read existing implementations: rateLimit, stellarAuth, logger, api/index, stream, index
-- [ ] Verify which endpoints are “write” vs “read” in current API
-- [ ] Ensure auth middleware is applied only to write endpoints
 
-## Step 2: Implement Redis sliding-window rate limiting
+- [ ] Update migrations to add `follow_counts` table
+- [ ] Add triggers to keep `follow_counts` consistent on follows insert/delete
 
-- [ ] Update `services/indexer/src/middleware/rateLimit.ts`
-  - [ ] Add Redis-backed sliding-window implementation (fallback to in-memory)
-  - [ ] Enforce read: RATE_LIMIT_READ_RPM per IP
-  - [ ] Enforce write: RATE_LIMIT_WRITE_RPM per `req.context.stellarAddress`
-  - [ ] Return 429 + Retry-After
 
-## Step 3: Update Stellar signature auth to required format
+## Step 2 — Wire streaming dispatcher
+- [ ] Update `services/indexer/src/index.ts` to dispatch events by `event.topic[0]`
+- [ ] Map follow/unfollow and post/like/tip topics to existing handlers
+- [ ] Ensure idempotency and transaction boundaries as needed
 
-- [ ] Update `services/indexer/src/middleware/stellarAuth.ts`
-  - [x] Parse `Authorization: StellarSig <base64(JSON{address,timestamp,signature})>`
+## Step 3 — Social API endpoints
+- [ ] Add `/api/social/followers/:address` and `/api/social/following/:address` routes
+- [ ] Implement offset/limit pagination backed by materialized follows/follow_counts
 
-  - [ ] Verify signature over sha256(address + ":" + timestamp)
-  - [ ] Enforce timestamp tolerance (±30s) / replay protection requirements
-  - [ ] Attach `req.context.stellarAddress`
+## Step 4 — Feed endpoints
+- [ ] Add `/api/feed/following` using keyset pagination
+- [ ] Add `/api/feed/explore` score computation backing + keyset pagination
+- [ ] Implement background job refresh every 60 seconds
 
-## Step 4: Apply auth to write endpoints
+## Step 5 — Tests + OpenAPI
+- [ ] Add tests for follow graph + counts atomically updated
+- [ ] Add tests for following feed correctness
+- [ ] Add tests for explore scoring order
+- [ ] Add tests for keyset pagination no duplicates under concurrent inserts
+- [ ] Update `services/indexer/openapi.yaml` and relevant API docs
 
-- [ ] Update `services/indexer/src/api/index.ts` and/or route files
-  - [ ] Add `requireStellarAuth` for all write endpoints
-  - [ ] Ensure rate limiting uses authenticated address for write endpoints
+## Step 6 — Verify
+- [ ] Run indexer test suite
+- [ ] Run integration/e2e tests if available
 
-## Step 5: Structured logging cleanup & abuse detection
-
-- [ ] Replace all `console.log`/`console.error` with pino logger calls
-  - [ ] `services/indexer/src/index.ts`
-  - [ ] `services/indexer/src/stream.ts`
-  - [ ] `services/indexer/src/api/index.ts`
-
-## Step 6: Health endpoint
-
-- [ ] Add `GET /health` returning {status, uptime, dbConnected, rpcConnected}
-- [ ] Wire `healthState` flags to actual connectivity checks
-
-## Step 7: Tests
-
-- [ ] Add Jest tests for:
-  - [ ] Burst 70 reads => 61st returns 429
-  - [ ] Valid stellar-signed write accepted
-  - [ ] 60-second-old timestamp => 403
-  - [ ] Invalid signature => 401
-- [ ] Ensure tests pass in CI without Redis (fallback)
-
-## Step 8: Fix existing API indexer file issues
-
-- [ ] Remove/repair broken exports and references in `services/indexer/src/api/index.ts`
-
-## Step 9: Run test suite
-
-- [ ] `cd services/indexer && npm test`

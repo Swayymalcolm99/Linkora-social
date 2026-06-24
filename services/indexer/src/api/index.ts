@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
+import { Pool as PgPool } from "pg";
 import { Database } from "../db";
 import { logger, requestLoggingMiddleware, getHealth } from "../logger";
 import { rateLimitRead, rateLimitWrite, rateLimit } from "../middleware/rateLimit";
@@ -7,36 +9,57 @@ import { createProfilesRouter } from "./routes/profiles";
 import { createPostsRouter } from "./routes/posts";
 import { createFollowsRouter } from "./routes/follows";
 import { createPoolsRouter } from "./routes/pools";
+import { createStateRootRouter } from "./routes/stateRoot";
+import { createNotificationsRouter } from "./routes/notifications";
+import { isFenced } from "../gossip";
+import {
+  defaultNotificationService,
+  NotificationService,
+  PostgresDeviceTokenStore,
+} from "../notifications/service";
+import { PostgresDatabase } from "../postgres-db";
 
 // ── App factory ───────────────────────────────────────────────────────────────
 
-export function createApp(db: Database): express.Application {
+export function createApp(db: Database, pg?: PgPool): express.Application {
   const app = express();
   app.use(express.json());
 
-  // Add request logging middleware early (before all other middleware)
-  app.use(requestLoggingMiddleware);
-
-  // ── Health check (no rate limiting, no auth) ──────────────────────────────
-
   app.get("/health", (_req: Request, res: Response): void => {
-    const health = getHealth();
-    const status = health.status === "ok" ? 200 : 503;
-    res.status(status).json(health);
+    res.json({ status: "ok" });
   });
 
-  // ── Apply rate limiting to all /api routes ─────────────────────────────────
-  // Read endpoints get rateLimitRead; write endpoints get rateLimitWrite.
-  // The unified rateLimit middleware auto-detects based on HTTP method.
-  app.use("/api", rateLimit);
+  // Apply rate limiting to all /api routes.
+  app.use("/api", apiLimiter);
 
-  // ── Resource routes (read-only) ───────────────────────────────────────────
+  // Self-fencing middleware: stop serving when Byzantine majority detected.
+  app.use("/api", (_req: Request, res: Response, next: NextFunction): void => {
+    if (isFenced()) {
+      res
+        .status(503)
+        .json({ error: "Node self-fenced: Byzantine divergence detected", code: "SELF_FENCED" });
+      return;
+    }
+    next();
+  });
+
+  // ── Resource routes ────────────────────────────────────────────────────────
   app.use("/api/profiles", createProfilesRouter(db));
   app.use("/api/posts", createPostsRouter(db));
   app.use("/api/follows", createFollowsRouter(db));
   app.use("/api/pools", createPoolsRouter(db));
 
-  // ── Search endpoint (POST but treated as a read — use read limit) ─────────
+  const notificationService = pg
+    ? new NotificationService({ deviceTokenStore: new PostgresDeviceTokenStore(pg) })
+    : defaultNotificationService;
+  app.use("/api/notifications", createNotificationsRouter(notificationService));
+
+  // State root endpoint (requires pg pool).
+  if (pg) {
+    app.use("/api/state-root", createStateRootRouter(pg));
+  }
+
+  // ── Search endpoint ──────────────────────────────────────────────────────────
 
   interface SearchQuery {
     query: string;
@@ -171,8 +194,14 @@ if (require.main === module) {
   const DATABASE_URL = process.env.DATABASE_URL ?? "";
   const _stub = new Pool({ connectionString: DATABASE_URL }) as unknown as Database;
   const PORT = parseInt(process.env.PORT ?? "3001", 10);
-  const serverApp = createApp(_stub);
-  serverApp.listen(PORT, () => {
-    logger.info({ port: PORT }, "Indexer API listening");
+  const databaseUrl = process.env.DATABASE_URL;
+  const pg = databaseUrl ? new PgPool({ connectionString: databaseUrl }) : undefined;
+  const apiApp = pg ? createApp(new PostgresDatabase(pg), pg) : app;
+
+  apiApp.listen(PORT, () => {
+    console.log(`Indexer API listening on port ${PORT}`);
+    console.log(
+      `Rate limit: ${RATE_LIMIT_MAX} requests per ${RATE_LIMIT_WINDOW_MS / 1000}s per IP`
+    );
   });
 }
