@@ -45,3 +45,10 @@ export interface AnalyticsAttestation {
     uniqueTippers: number;
   };
 }
+
+export interface CreatorTokenDeployedEvent {
+  deployer: string;
+  token_address: string;
+  name: string;
+  symbol: string;
+}

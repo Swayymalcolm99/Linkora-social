@@ -187,4 +187,29 @@ describe("LinkoraClient write methods", () => {
     expect(client.setTipCooldownWindow(17280)).toBe(XDR);
     expect(mockCall).toHaveBeenCalledWith("set_tip_cooldown_window", val(17280));
   });
+
+  it("verifyAnalyticsAttestation builds tx with correct args", () => {
+    const reportCbor = new Uint8Array([1, 2, 3, 4]);
+    const signature = new Uint8Array(64).fill(0xab);
+
+    expect(
+      client.verifyAnalyticsAttestation(
+        "default",
+        reportCbor,
+        signature,
+        "GCREATOR",
+        1000,
+        2000
+      )
+    ).toBe(XDR);
+    expect(mockCall).toHaveBeenCalledWith(
+      "verify_analytics_attestation",
+      val("default"),
+      expect.objectContaining({ _val: expect.anything() }),
+      expect.objectContaining({ _val: expect.anything() }),
+      addr("GCREATOR"),
+      val(1000),
+      val(2000)
+    );
+  });
 });
