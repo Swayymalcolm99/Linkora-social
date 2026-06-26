@@ -41,7 +41,7 @@ export default function SettingsPage() {
         <NotificationsSection />
 
         {/* Block List Section */}
-        <BlockListSection />
+        <BlockListSection address={address} />
 
         {/* Governance Section */}
         <GovernanceSection address={address} />

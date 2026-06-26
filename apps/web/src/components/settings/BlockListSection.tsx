@@ -1,16 +1,41 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LinkoraClient } from "linkora-sdk";
 import { validateStellarAddress } from "@/lib/validate";
 
-export function BlockListSection() {
+interface BlockListSectionProps {
+  address: string;
+}
+
+async function waitForConfirmation(
+  server: any,
+  hash: string,
+  maxAttempts = 20,
+  intervalMs = 3000
+): Promise<void> {
+  const interval = process.env.NODE_ENV === "test" ? 0 : intervalMs;
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, interval));
+    const tx = await server.getTransaction(hash);
+    if (tx.status === "SUCCESS") return;
+    if (tx.status === "FAILED") throw new Error(`Transaction ${hash} failed on-chain.`);
+  }
+  throw new Error(`Transaction ${hash} timed out waiting for confirmation.`);
+}
+
+const STORAGE_KEY = "linkora_blocked_accounts";
+
+export function BlockListSection({ address }: BlockListSectionProps) {
   const [blockedList, setBlockedList] = useState<string[]>([]);
   const [newAddress, setNewAddress] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [blockingInProgress, setBlockingInProgress] = useState(false);
+  const [unblockingAddress, setUnblockingAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("linkora_blocked_accounts");
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         setBlockedList(JSON.parse(stored));
@@ -20,12 +45,50 @@ export function BlockListSection() {
     }
   }, []);
 
-  function saveBlockedList(list: string[]) {
+  function persistBlockedList(list: string[]) {
     setBlockedList(list);
-    localStorage.setItem("linkora_blocked_accounts", JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   }
 
-  function handleBlockAddress(e: React.FormEvent) {
+  async function submitOnChain(
+    method: "blockUser" | "unblockUser",
+    targetAddress: string
+  ): Promise<void> {
+    const { signTransaction } = await import("@stellar/freighter-api");
+    const { rpc: rpcModule, Transaction } = await import("@stellar/stellar-sdk");
+
+    const client = new LinkoraClient({
+      contractId: process.env.NEXT_PUBLIC_CONTRACT_ID || "",
+      rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org",
+    });
+
+    const txXdr =
+      method === "blockUser"
+        ? client.blockUser(address, targetAddress)
+        : client.unblockUser(address, targetAddress);
+
+    const signedXdr = await signTransaction(txXdr, {
+      network: "TESTNET",
+      accountToSign: address,
+    });
+
+    const networkPassphrase =
+      process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ?? "Test SDF Network ; September 2015";
+    const server = new rpcModule.Server(
+      process.env.NEXT_PUBLIC_RPC_URL ?? "https://soroban-testnet.stellar.org"
+    );
+
+    const tx = new Transaction(signedXdr, networkPassphrase);
+    const result = await server.sendTransaction(tx);
+
+    if (result.status === "ERROR" || result.status === "DUPLICATE") {
+      throw new Error(`Transaction rejected: ${result.status}`);
+    }
+
+    await waitForConfirmation(server, result.hash);
+  }
+
+  async function handleBlockAddress(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -47,20 +110,38 @@ export function BlockListSection() {
       return;
     }
 
-    const updated = [...blockedList, trimmed];
-    saveBlockedList(updated);
-    setNewAddress("");
-    setSuccess("Address blocked successfully.");
-    setTimeout(() => setSuccess(""), 3000);
+    setBlockingInProgress(true);
+    try {
+      await submitOnChain("blockUser", trimmed);
+      const updated = [...blockedList, trimmed];
+      persistBlockedList(updated);
+      setNewAddress("");
+      setSuccess("Address blocked successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Failed to block address:", err);
+      setError("Failed to block address on-chain. Please try again.");
+    } finally {
+      setBlockingInProgress(false);
+    }
   }
 
-  function handleUnblockAddress(addressToUnblock: string) {
+  async function handleUnblockAddress(addressToUnblock: string) {
     setError("");
     setSuccess("");
-    const updated = blockedList.filter((addr) => addr !== addressToUnblock);
-    saveBlockedList(updated);
-    setSuccess("Address unblocked successfully.");
-    setTimeout(() => setSuccess(""), 3000);
+    setUnblockingAddress(addressToUnblock);
+    try {
+      await submitOnChain("unblockUser", addressToUnblock);
+      const updated = blockedList.filter((addr) => addr !== addressToUnblock);
+      persistBlockedList(updated);
+      setSuccess("Address unblocked successfully.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Failed to unblock address:", err);
+      setError("Failed to unblock address on-chain. Please try again.");
+    } finally {
+      setUnblockingAddress(null);
+    }
   }
 
   return (
@@ -96,14 +177,16 @@ export function BlockListSection() {
               if (error) setError("");
             }}
             placeholder="Enter Stellar address (G...)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
+            disabled={blockingInProgress}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
           />
         </div>
         <button
           type="submit"
-          className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors whitespace-nowrap"
+          disabled={blockingInProgress}
+          className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Block Address
+          {blockingInProgress ? "Blocking..." : "Block Address"}
         </button>
       </form>
 
@@ -119,9 +202,10 @@ export function BlockListSection() {
               <button
                 type="button"
                 onClick={() => handleUnblockAddress(addr)}
-                className="px-2.5 py-1 text-xs font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded hover:bg-red-50 transition-colors"
+                disabled={unblockingAddress === addr}
+                className="px-2.5 py-1 text-xs font-medium text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Unblock
+                {unblockingAddress === addr ? "Unblocking..." : "Unblock"}
               </button>
             </li>
           ))}
