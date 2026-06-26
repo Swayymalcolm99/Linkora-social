@@ -62,6 +62,8 @@ jest.mock("linkora-sdk", () => ({
     setProfile: jest.fn().mockReturnValue("mockXDR"),
     publishDmKey: jest.fn().mockReturnValue("mockXDR"),
     deleteProfile: jest.fn().mockReturnValue("mockXDR"),
+    blockUser: jest.fn().mockReturnValue("mockXDR"),
+    unblockUser: jest.fn().mockReturnValue("mockXDR"),
   })),
   generateDmKeypair: jest.fn().mockReturnValue({
     publicKey: new Uint8Array(32),

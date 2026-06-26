@@ -12,6 +12,7 @@ export function ProfileSection({ address }: ProfileSectionProps) {
   const [initialValues, setInitialValues] = useState<Partial<ProfileFormValues>>({});
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -37,6 +38,7 @@ export function ProfileSection({ address }: ProfileSectionProps) {
   }, [address]);
 
   async function handleSubmit(values: ProfileFormValues) {
+    setErrorMessage("");
     try {
       const { signTransaction } = await import("@stellar/freighter-api");
       const { rpc: rpcModule, Transaction } = await import("@stellar/stellar-sdk");
@@ -77,6 +79,7 @@ export function ProfileSection({ address }: ProfileSectionProps) {
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Failed to update profile:", error);
+      setErrorMessage("Failed to update profile. Please try again.");
     }
   }
 
@@ -97,6 +100,12 @@ export function ProfileSection({ address }: ProfileSectionProps) {
       {successMessage && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
           {successMessage}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {errorMessage}
         </div>
       )}
 
