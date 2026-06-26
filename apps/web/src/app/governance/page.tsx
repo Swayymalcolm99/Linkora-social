@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useWalletContext } from "@/components/WalletProvider";
-import { LinkoraClient, GovProposal, GovStatus } from "linkora-sdk";
+import { LinkoraClient, GovParameter, GovProposal, GovStatus } from "linkora-sdk";
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID ?? "";
-const NETWORK = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "TESTNET";
 
 type ProposalWithQuorum = GovProposal & { effectiveQuorum: number };
+const GOVERNANCE_PARAMETERS = Object.values(GovParameter) as GovParameter[];
 
 export default function GovernancePage() {
   const { address, connected } = useWalletContext();
@@ -17,16 +17,15 @@ export default function GovernancePage() {
   const [activeTab, setActiveTab] = useState<"Active" | "Passed" | "Executed" | "History">("Active");
 
   // Form state
-  const [formParam, setFormParam] = useState<string>("FeeBps");
+  const [formParam, setFormParam] = useState<GovParameter>(GovParameter.FeeBps);
   const [formValue, setFormValue] = useState<string>("");
-  const [customParam, setCustomParam] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchProposals = async () => {
     if (!CONTRACT_ID) return;
     setLoading(true);
     try {
-      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID, network: NETWORK as any });
+      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID });
       const fetched: ProposalWithQuorum[] = [];
       let id = 1n;
       while (true) {
@@ -50,16 +49,15 @@ export default function GovernancePage() {
 
   useEffect(() => {
     fetchProposals();
-  }, [CONTRACT_ID]);
+  }, []);
 
   const handlePropose = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address || !CONTRACT_ID) return;
     setIsSubmitting(true);
     try {
-      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID, network: NETWORK as any });
-      const paramToUse = formParam === "custom" ? customParam : formParam;
-      await client.govPropose(address, paramToUse, BigInt(formValue), null);
+      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID });
+      await client.govPropose(address, formParam, BigInt(formValue), null);
       setFormValue("");
       await fetchProposals();
     } catch (error) {
@@ -73,7 +71,7 @@ export default function GovernancePage() {
   const handleVote = async (proposalId: bigint, support: boolean) => {
     if (!address || !CONTRACT_ID) return;
     try {
-      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID, network: NETWORK as any });
+      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID });
       await client.govVote(address, proposalId, support);
       await fetchProposals();
     } catch (error) {
@@ -85,7 +83,7 @@ export default function GovernancePage() {
   const handleExecute = async (proposalId: bigint) => {
     if (!CONTRACT_ID) return;
     try {
-      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID, network: NETWORK as any });
+      const client = new LinkoraClient({ rpcUrl: RPC_URL, contractId: CONTRACT_ID });
       await client.govExecute(proposalId);
       await fetchProposals();
     } catch (error) {
@@ -106,7 +104,7 @@ export default function GovernancePage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Governance</h1>
-        <p className="text-[var(--text-muted)]">Participate in the protocol's parameter management.</p>
+        <p className="text-[var(--text-muted)]">Participate in the protocol&apos;s parameter management.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -234,33 +232,16 @@ export default function GovernancePage() {
                   <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Parameter</label>
                   <select
                     value={formParam}
-                    onChange={(e) => setFormParam(e.target.value)}
+                    onChange={(e) => setFormParam(e.target.value as GovParameter)}
                     className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                   >
-                    <option value="FeeBps">FeeBps</option>
-                    <option value="Treasury">Treasury</option>
-                    <option value="TipCooldownWindow">TipCooldownWindow</option>
-                    <option value="GovQuorum">GovQuorum</option>
-                    <option value="GovTimeLock">GovTimeLock</option>
-                    <option value="GovVoteWindow">GovVoteWindow</option>
-                    <option value="ModerationSlashBps">ModerationSlashBps</option>
-                    <option value="custom">Custom...</option>
+                    {GOVERNANCE_PARAMETERS.map((parameter) => (
+                      <option key={parameter} value={parameter}>
+                        {parameter}
+                      </option>
+                    ))}
                   </select>
                 </div>
-
-                {formParam === "custom" && (
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Custom Parameter Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={customParam}
-                      onChange={(e) => setCustomParam(e.target.value)}
-                      className="w-full bg-[var(--muted)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                      placeholder="e.g. MaxPostLength"
-                    />
-                  </div>
-                )}
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">New Value (Integer)</label>

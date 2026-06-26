@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { useWalletContext } from "@/components/WalletProvider";
@@ -113,12 +113,17 @@ function groupByDate(notifications: Notification[]): DateGroup[] {
 export default function NotificationsPage() {
   const { address, connected } = useWalletContext();
   const { notifications, hasMore, unreadCount, markAllRead, loadMore } = useNotifications();
+  const [markAllReadClicked, setMarkAllReadClicked] = useState(false);
 
   useEffect(() => {
-    if (connected && unreadCount > 0) {
-      markAllRead();
-    }
-  }, [connected, unreadCount, markAllRead]);
+    if (!connected || !address || unreadCount <= 0) return;
+
+    const key = `linkora:notifications:auto-read:${address}`;
+    if (sessionStorage.getItem(key)) return;
+
+    sessionStorage.setItem(key, "1");
+    markAllRead();
+  }, [address, connected, unreadCount, markAllRead]);
 
   if (!connected || !address) {
     return (
@@ -134,9 +139,12 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[var(--foreground)]">Notifications</h1>
-        {notifications.some((n) => !n.read) && (
+        {notifications.length > 0 && !markAllReadClicked && (
           <button
-            onClick={markAllRead}
+            onClick={() => {
+              markAllRead();
+              setMarkAllReadClicked(true);
+            }}
             className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors"
             data-testid="mark-all-read"
           >

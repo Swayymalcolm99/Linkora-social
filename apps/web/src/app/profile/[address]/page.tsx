@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProfile, type IndexerPost } from "@/hooks/useProfile";
 import { useWallet } from "@/hooks/useWallet";
@@ -21,6 +22,7 @@ import {
   rpc as StellarRpc,
 } from "@stellar/stellar-sdk";
 import { signTransaction } from "@stellar/freighter-api";
+import { LinkoraClient } from "linkora-sdk";
 
 const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || "CDUMMY";
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://soroban-testnet.stellar.org";
@@ -59,6 +61,7 @@ export default function ProfilePage() {
   const [drawerType, setDrawerType] = useState<"followers" | "following">("followers");
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -330,8 +333,8 @@ export default function ProfilePage() {
 
             {/* Follower / following counts */}
             <div className="flex gap-6 mt-4">
-              <button
-                onClick={() => openDrawer("followers")}
+              <Link
+                href={`/profile/${address}/followers`}
                 className="hover:text-[var(--accent-teal)] transition-colors"
                 aria-label={`View ${followState.followersCount} followers`}
                 id="followers-btn"
@@ -340,10 +343,10 @@ export default function ProfilePage() {
                   {followState.followersCount}
                 </span>{" "}
                 <span className="text-[var(--text-muted)]">Followers</span>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => openDrawer("following")}
+              <Link
+                href={`/profile/${address}/following`}
                 className="hover:text-[var(--accent-teal)] transition-colors"
                 aria-label={`View ${followState.followingCount} following`}
                 id="following-btn"
@@ -352,7 +355,7 @@ export default function ProfilePage() {
                   {followState.followingCount}
                 </span>{" "}
                 <span className="text-[var(--text-muted)]">Following</span>
-              </button>
+              </Link>
             </div>
           </div>
 

@@ -486,6 +486,8 @@ export class GeneratedLinkoraClient {
 
   setTipCooldownWindow(cooldown_ledgers: number): string {
     return this.buildTx("set_tip_cooldown_window", scvU32(cooldown_ledgers));
+  }
+
     // ── Additional Write Methods ───────────────────────────────────────
   payRent(renter: string, amount: bigint): string {
     return this.buildTx(
@@ -521,11 +523,22 @@ export class GeneratedLinkoraClient {
     );
   }
 
-  verifyAnalyticsAttestation(admin: string, attestation: Uint8Array): string {
+  verifyAnalyticsAttestation(
+    oracleName: string,
+    reportCbor: Uint8Array,
+    signature: Uint8Array,
+    creator: string,
+    windowStart: number | bigint,
+    windowEnd: number | bigint
+  ): string {
     return this.buildTx(
       "verify_analytics_attestation",
-      scvAddress(admin),
-      nativeToScVal(attestation, { type: "bytes" })
+      scvSymbol(oracleName),
+      nativeToScVal(reportCbor, { type: "bytes" }),
+      nativeToScVal(signature, { type: "bytes" }),
+      scvAddress(creator),
+      scvU64(windowStart),
+      scvU64(windowEnd)
     );
   }
 
@@ -575,7 +588,5 @@ export class GeneratedLinkoraClient {
       throw e;
     }
   }
-
-}
 
 }

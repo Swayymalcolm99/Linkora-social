@@ -98,8 +98,8 @@ export const OptimisticStore = {
   isPending(targetAddress: string): boolean {
     return pendingMap.get(targetAddress) ?? false;
   },
-  setPending(targetAddress: string, isPending: boolean) {
-    pendingMap.set(targetAddress, isPending);
+  setPending(targetAddress: string, pending: boolean | { isPending: boolean }) {
+    pendingMap.set(targetAddress, typeof pending === "boolean" ? pending : pending.isPending);
     notify();
   },
 };

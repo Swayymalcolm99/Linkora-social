@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { LinkoraClient } from "linkora-sdk";
-import type { Post } from "linkora-sdk/dist/generated/types"; // or export from main index if available
+import { LinkoraClient, type Post } from "linkora-sdk";
 
 const RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? "https://soroban-testnet.stellar.org";
 const CONTRACT_ID =

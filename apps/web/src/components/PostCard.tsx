@@ -3,11 +3,12 @@
 export interface Post {
   id: string | number;
   author: string;
+  username?: string;
   content: string;
   tip_total?: string | number;
+  like_count?: string | number;
   timestamp?: string | number;
   created_at?: string;
-  like_count?: string | number;
 }
 
 interface PostCardProps {

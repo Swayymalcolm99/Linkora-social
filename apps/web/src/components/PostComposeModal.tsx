@@ -88,7 +88,7 @@ export function PostComposeModal({ isOpen, onClose, publicKey }: PostComposeModa
       e.preventDefault();
       if (isDisabled || !publicKey) return;
 
-      setPublishState({ status: "awaiting_signature", errorMsg: "", postId: null });
+      setPublishState({ status: "awaiting_signature", errorMsg: "", postId: null, txHash: null });
 
       try {
         const server = new StellarRpc.Server(RPC_URL);

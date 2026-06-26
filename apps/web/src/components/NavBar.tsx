@@ -130,6 +130,7 @@ export function NavBar() {
                 </span>
               )}
             </Link>
+            </>
           )}
           {connected && address ? (
             <>
@@ -154,6 +155,7 @@ export function NavBar() {
                 className="font-mono text-sm text-[var(--foreground)] bg-[var(--muted)] border border-[var(--border)] rounded-lg px-3 py-1.5 select-all"
                 title={address}
                 aria-label={`Connected address: ${address}`}
+                data-testid="wallet-address"
               >
                 {truncateAddress(address)}
               </span>
@@ -163,6 +165,7 @@ export function NavBar() {
                 onClick={disconnect}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-medium text-[var(--text-muted)] hover:border-red-500/60 hover:text-red-400 transition-colors"
                 aria-label="Disconnect wallet"
+                data-testid="disconnect-wallet"
               >
                 Disconnect
               </button>
@@ -172,6 +175,7 @@ export function NavBar() {
               onClick={handleConnect}
               className="rounded-lg bg-violet-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-violet-500 transition-colors"
               aria-label="Connect Freighter wallet"
+              data-testid="connect-wallet"
             >
               Connect Wallet
             </button>

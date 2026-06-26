@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useWallet } from '@/hooks/useWallet';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useWallet } from "@/hooks/useWallet";
 import {
   generateDmKeypair,
   encryptDirectMessage,
   decryptDirectMessage,
   base64ToBytes,
   DecryptionError,
-} from '@/lib/dm/crypto';
-import { hasDmKeypair, storeDmKeypair, loadDmKeypair } from '@/lib/dm/storage';
-import { sendRelayMessage, fetchRelayMessages, type RelayMessage } from '@/lib/dm/relay';
-import { getDmKey, publishDmKey } from '@/lib/dm/contract';
+} from "@/lib/dm/crypto";
+import { hasDmKeypair, storeDmKeypair, loadDmKeypair } from "@/lib/dm/storage";
+import { sendRelayMessage, fetchRelayMessages, type RelayMessage } from "@/lib/dm/relay";
+import { getDmKey, publishDmKey } from "@/lib/dm/contract";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,20 +21,17 @@ interface DecryptedMessage extends RelayMessage {
   decryptionFailed: boolean;
 }
 
-interface PageProps {
-  params: { address: string };
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DirectMessagePage({ params }: PageProps) {
+export default function DirectMessagePage() {
+  const params = useParams<{ address: string }>();
   const recipientAddress = params.address;
   const router = useRouter();
   const { address: myAddress, connected } = useWallet();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [messages, setMessages] = useState<DecryptedMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [keysReady, setKeysReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -68,18 +65,18 @@ export default function DirectMessagePage({ params }: PageProps) {
             myAddress,
             recipientAddress,
             base64ToBytes(msg.ciphertext_b64),
-            msg.message_index,
+            msg.message_index
           );
           return { ...msg, content, decryptionFailed: false };
         } catch (err) {
           if (err instanceof DecryptionError) {
-            return { ...msg, content: '[Message could not be decrypted]', decryptionFailed: true };
+            return { ...msg, content: "[Message could not be decrypted]", decryptionFailed: true };
           }
           throw err;
         }
       });
     },
-    [myAddress, recipientAddress],
+    [myAddress, recipientAddress]
   );
 
   // ── Load conversation ─────────────────────────────────────────────────────
@@ -109,7 +106,7 @@ export default function DirectMessagePage({ params }: PageProps) {
 
   // Auto-scroll when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // ── Key generation + publish ──────────────────────────────────────────────
@@ -133,7 +130,7 @@ export default function DirectMessagePage({ params }: PageProps) {
       await loadMessages();
     } catch (err) {
       setError(
-        `Could not enable direct messages: ${err instanceof Error ? err.message : String(err)}`,
+        `Could not enable direct messages: ${err instanceof Error ? err.message : String(err)}`
       );
     } finally {
       setPublishingKeys(false);
@@ -157,7 +154,7 @@ export default function DirectMessagePage({ params }: PageProps) {
       try {
         const recipientPubKey = await getDmKey(recipientAddress);
         if (!recipientPubKey) {
-          throw new Error('Recipient has not enabled direct messages yet.');
+          throw new Error("Recipient has not enabled direct messages yet.");
         }
 
         const messageIndex = Date.now();
@@ -167,25 +164,23 @@ export default function DirectMessagePage({ params }: PageProps) {
           myAddress,
           recipientAddress,
           trimmed,
-          messageIndex,
+          messageIndex
         );
 
         await sendRelayMessage(myAddress, recipientAddress, ciphertext, messageIndex);
-        setNewMessage('');
+        setNewMessage("");
         await loadMessages();
       } catch (err) {
-        setError(
-          `Failed to send: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        setError(`Failed to send: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setSending(false);
       }
     },
-    [myAddress, newMessage, recipientAddress, sending, loadMessages],
+    [myAddress, newMessage, recipientAddress, sending, loadMessages]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend(e as unknown as React.FormEvent);
     }
@@ -217,10 +212,10 @@ export default function DirectMessagePage({ params }: PageProps) {
               Enable Direct Messages
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
-              Linkora DMs are end-to-end encrypted with X25519 key agreement and
-              ChaCha20-Poly1305. Your encryption keys are generated in the browser and
-              your public key is published to the Linkora smart contract so others can
-              message you securely. Your private key never leaves your device.
+              Linkora DMs are end-to-end encrypted with X25519 key agreement and ChaCha20-Poly1305.
+              Your encryption keys are generated in the browser and your public key is published to
+              the Linkora smart contract so others can message you securely. Your private key never
+              leaves your device.
             </p>
           </div>
 
@@ -242,7 +237,7 @@ export default function DirectMessagePage({ params }: PageProps) {
               disabled={publishingKeys}
               className="flex-1 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {publishingKeys ? 'Publishing keys…' : 'Enable DMs'}
+              {publishingKeys ? "Publishing keys…" : "Enable DMs"}
             </button>
           </div>
         </div>
@@ -296,8 +291,8 @@ export default function DirectMessagePage({ params }: PageProps) {
       {/* ── Recipient notice (no DM keys) ────────────────────────────────── */}
       {recipientHasKeys === false && (
         <div className="shrink-0 border-b border-yellow-700/50 bg-yellow-900/20 px-4 py-2 text-sm text-yellow-400">
-          This address has not published DM keys yet. Ask them to enable direct messages on
-          Linkora first.
+          This address has not published DM keys yet. Ask them to enable direct messages on Linkora
+          first.
         </div>
       )}
 
@@ -319,28 +314,28 @@ export default function DirectMessagePage({ params }: PageProps) {
               return (
                 <li
                   key={`${msg.id}-${idx}`}
-                  className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={[
-                      'max-w-xs rounded-2xl px-4 py-2.5 lg:max-w-md',
+                      "max-w-xs rounded-2xl px-4 py-2.5 lg:max-w-md",
                       isMe
-                        ? 'rounded-br-sm bg-violet-600 text-white'
-                        : 'rounded-bl-sm border border-[var(--border)] bg-[var(--muted)] text-[var(--foreground)]',
-                      msg.decryptionFailed ? 'opacity-50' : '',
-                    ].join(' ')}
+                        ? "rounded-br-sm bg-violet-600 text-white"
+                        : "rounded-bl-sm border border-[var(--border)] bg-[var(--muted)] text-[var(--foreground)]",
+                      msg.decryptionFailed ? "opacity-50" : "",
+                    ].join(" ")}
                   >
                     <p className="break-words text-sm leading-relaxed whitespace-pre-wrap">
                       {msg.content}
                     </p>
                     <p
                       className={`mt-1 text-right text-xs ${
-                        isMe ? 'text-violet-200' : 'text-[var(--text-muted)]'
+                        isMe ? "text-violet-200" : "text-[var(--text-muted)]"
                       }`}
                     >
                       {new Date(msg.timestamp * 1000).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>
@@ -365,7 +360,7 @@ export default function DirectMessagePage({ params }: PageProps) {
             rows={1}
             aria-label="Message input"
             className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--text-muted)] transition-colors focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
-            style={{ minHeight: '2.75rem', maxHeight: '8rem' }}
+            style={{ minHeight: "2.75rem", maxHeight: "8rem" }}
           />
           <button
             type="submit"
@@ -373,7 +368,7 @@ export default function DirectMessagePage({ params }: PageProps) {
             aria-label="Send message"
             className="shrink-0 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {sending ? '…' : 'Send'}
+            {sending ? "…" : "Send"}
           </button>
         </form>
         <p className="mt-1.5 text-center text-xs text-[var(--text-muted)]">
