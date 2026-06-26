@@ -18,6 +18,8 @@ export type FollowState = {
 
 // Key format: `${followerAddress}:${followeeAddress}`
 const followStateMap = new Map<string, FollowState>();
+const followingMap = new Map<string, boolean>();
+const pendingMap = new Map<string, boolean>();
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -38,6 +40,8 @@ function notify() {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export const OptimisticStore = {
+  subscribe,
+
   setFollowState(key: string, state: FollowState) {
     followStateMap.set(key, state);
     notify();
@@ -49,6 +53,24 @@ export const OptimisticStore = {
 
   clearFollowState(key: string) {
     followStateMap.delete(key);
+    notify();
+  },
+
+  isFollowing(address: string): boolean {
+    return followingMap.get(address) ?? false;
+  },
+
+  setFollowing(address: string, value: boolean) {
+    followingMap.set(address, value);
+    notify();
+  },
+
+  isPending(address: string): boolean {
+    return pendingMap.get(address) ?? false;
+  },
+
+  setPending(address: string, value: boolean) {
+    pendingMap.set(address, value);
     notify();
   },
 };

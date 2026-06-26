@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * localStorage persistence for the user's X25519 DM keypair.
@@ -7,18 +7,22 @@
  * the same browser remain isolated.  Mobile counterpart uses expo-secure-store.
  */
 
-import type { DmKeyPair } from 'linkora-sdk/dm/crypto';
-import { bytesToBase64, base64ToBytes } from './crypto';
+import type { DmKeyPair } from "linkora-sdk";
+import { bytesToBase64, base64ToBytes } from "./crypto";
 
-const PREFIX = 'linkora_dm_';
+const PREFIX = "linkora_dm_";
 
-function pubKey(addr: string) { return `${PREFIX}x25519_pub_${addr}`; }
-function privKey(addr: string) { return `${PREFIX}x25519_priv_${addr}`; }
+function pubKey(addr: string) {
+  return `${PREFIX}x25519_pub_${addr}`;
+}
+function privKey(addr: string) {
+  return `${PREFIX}x25519_priv_${addr}`;
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function hasDmKeypair(address: string): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   return (
     localStorage.getItem(pubKey(address)) !== null &&
     localStorage.getItem(privKey(address)) !== null

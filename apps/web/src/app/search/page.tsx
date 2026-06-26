@@ -1,12 +1,12 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { SearchPageClient } from "./SearchPageClient";
 
 type BoundaryProps = {
-  fallback: JSX.Element;
-  children: JSX.Element;
+  fallback: ReactNode;
+  children: ReactNode;
 };
 
-const SuspenseBoundary = Suspense as unknown as (props: BoundaryProps) => JSX.Element;
+const SuspenseBoundary = Suspense as unknown as (props: BoundaryProps) => ReactNode;
 
 export default function SearchPage() {
   return (

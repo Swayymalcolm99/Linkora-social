@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * HTTP client for the Linkora DM relay service.
@@ -13,7 +13,7 @@
  *   sent as hex string in the JSON body
  */
 
-import { bytesToHex, bytesToBase64, base64ToBytes, createConversationId } from './crypto';
+import { bytesToHex, bytesToBase64, base64ToBytes, createConversationId } from "./crypto";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,13 +30,15 @@ export interface RelayMessage {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const RELAY_URL =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_DM_RELAY_URL) ||
-  'http://localhost:3001';
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_DM_RELAY_URL) ||
+  "http://localhost:3001";
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 async function sha256Web(data: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+  const buffer = new ArrayBuffer(data.byteLength);
+  new Uint8Array(buffer).set(data);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", buffer));
 }
 
 /**
@@ -46,17 +48,15 @@ async function sha256Web(data: Uint8Array): Promise<Uint8Array> {
  * Freighter v2 exposes signBlob(base64Data, opts) which signs raw bytes with
  * the wallet's Ed25519 private key and returns a base64-encoded signature.
  */
-async function buildAuthSignature(
-  senderAddress: string,
-  timestamp: number,
-): Promise<string> {
-  const hash = await sha256Web(
-    new TextEncoder().encode(senderAddress + String(timestamp)),
-  );
+async function buildAuthSignature(senderAddress: string, timestamp: number): Promise<string> {
+  const hash = await sha256Web(new TextEncoder().encode(senderAddress + String(timestamp)));
 
-  const { signBlob } = await import('@stellar/freighter-api');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sigBase64: string = await (signBlob as any)(bytesToBase64(hash), {
+  const { signBlob } = await import("@stellar/freighter-api");
+  const signBlobFn = signBlob as (
+    payload: string,
+    options: { accountToSign: string }
+  ) => Promise<string>;
+  const sigBase64 = await signBlobFn(bytesToBase64(hash), {
     accountToSign: senderAddress,
   });
 
@@ -73,14 +73,14 @@ export async function sendRelayMessage(
   senderAddress: string,
   recipientAddress: string,
   ciphertext: Uint8Array,
-  messageIndex: number,
+  messageIndex: number
 ): Promise<void> {
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = await buildAuthSignature(senderAddress, timestamp);
 
   const res = await fetch(`${RELAY_URL}/api/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       sender: senderAddress,
       recipient: recipientAddress,
@@ -105,7 +105,7 @@ export async function sendRelayMessage(
 export async function fetchRelayMessages(
   myAddress: string,
   theirAddress: string,
-  limit = 50,
+  limit = 50
 ): Promise<RelayMessage[]> {
   const conversationId = createConversationId(myAddress, theirAddress);
   const params = new URLSearchParams({ limit: String(limit) });

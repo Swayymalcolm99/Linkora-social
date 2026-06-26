@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useProfile, type IndexerPost } from "@/hooks/useProfile";
 import { useWallet } from "@/hooks/useWallet";
@@ -236,8 +237,8 @@ export default function ProfilePage() {
 
             {/* Follower / following counts */}
             <div className="flex gap-6 mt-4">
-              <button
-                onClick={() => openDrawer("followers")}
+              <Link
+                href={`/profile/${address}/followers`}
                 className="hover:text-[var(--accent-teal)] transition-colors"
                 aria-label={`View ${followState.followersCount} followers`}
                 id="followers-btn"
@@ -246,10 +247,10 @@ export default function ProfilePage() {
                   {followState.followersCount}
                 </span>{" "}
                 <span className="text-[var(--text-muted)]">Followers</span>
-              </button>
+              </Link>
 
-              <button
-                onClick={() => openDrawer("following")}
+              <Link
+                href={`/profile/${address}/following`}
                 className="hover:text-[var(--accent-teal)] transition-colors"
                 aria-label={`View ${followState.followingCount} following`}
                 id="following-btn"
@@ -258,7 +259,7 @@ export default function ProfilePage() {
                   {followState.followingCount}
                 </span>{" "}
                 <span className="text-[var(--text-muted)]">Following</span>
-              </button>
+              </Link>
             </div>
           </div>
 
