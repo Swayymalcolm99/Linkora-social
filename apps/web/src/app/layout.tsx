@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { NavBar } from "@/components/NavBar";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import { ThemeBootstrap } from "@/components/ThemeBootstrap";
 
 export const metadata: Metadata = {
@@ -16,10 +17,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeBootstrap />
         <WalletProvider>
-          <NotificationsProvider>
-            <NavBar />
-            <main>{children}</main>
-          </NotificationsProvider>
+          <OnboardingProvider>
+            <NotificationsProvider>
+              <NavBar />
+              <main>{children}</main>
+            </NotificationsProvider>
+          </OnboardingProvider>
         </WalletProvider>
       </body>
     </html>

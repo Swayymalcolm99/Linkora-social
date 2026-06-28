@@ -9,6 +9,7 @@ import { BlockListSection } from "@/components/settings/BlockListSection";
 import { GovernanceSection } from "@/components/settings/GovernanceSection";
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
 import { ThemeSection } from "@/components/settings/ThemeSection";
+import { OnboardingSettings } from "@/components/settings/OnboardingSettings";
 
 export default function SettingsPage() {
   const { address, connected } = useWallet();
@@ -28,6 +29,9 @@ export default function SettingsPage() {
       <div className="space-y-8">
         {/* Appearance Section */}
         <ThemeSection />
+
+        {/* Onboarding Section */}
+        <OnboardingSettings />
 
         {/* Profile Section */}
         <ProfileSection address={address} />
